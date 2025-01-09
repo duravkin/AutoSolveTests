@@ -89,12 +89,17 @@ async function sendQuestionToBackend(questionData) {
     return data.answer;
 }
 
+function isNumber(value) {
+    return !isNaN(Number(value));
+}
+
 // Автоматически выбираем правильный ответ
 function selectAnswer(data, answer) {
     if (data.type === 'radio') {
         data.answers.forEach(element => {
+            document.getElementById(element.id).checked = false;
             if (element.text.includes(answer)) {
-                document.getElementById(element.id).click();
+                document.getElementById(element.id).checked = true;
                 console.log(element.text);
             }
         });
@@ -102,10 +107,15 @@ function selectAnswer(data, answer) {
 
     else if (data.type === 'checkbox') {
         data.answers.forEach(element => {
+            document.getElementById(element.id).checked = false;
             const arr_answer = answer.split(' ');
             for (let i = 0; i < arr_answer.length; i++) {
-                if (element.text.includes(arr_answer[i])) {
-                    document.getElementById(element.id).click();
+                if (isNumber(arr_answer[i]) && arr_answer[i] - 1 == element.id[element.id.length - 1]) {
+                    document.getElementById(element.id).checked = true;
+                    console.log(element.text);
+                }
+                else if (element.text.includes(arr_answer[i])) {
+                    document.getElementById(element.id).checked = true;
                     console.log(element.text);
                 }
             }
