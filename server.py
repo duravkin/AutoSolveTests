@@ -13,6 +13,8 @@ with open('config.json') as f:
 
 AUTHORIZATION_KEY = config['AUTHORIZATION_KEY']
 
+FILE_PATH = 'questions.json'
+
 app = Flask(__name__)
 CORS(app)
 
@@ -100,11 +102,9 @@ def mark_calculate(element: str) -> float:
     return mark
 
 
-def check_question_in_file(question_text):
-    file_path = 'questions.json'
-    
+def check_question_in_file(question_text):    
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(FILE_PATH, 'r', encoding='utf-8') as file:
             data = json.load(file)
     except FileNotFoundError:
         return None
@@ -137,10 +137,9 @@ def get_answer():
 @app.route('/save_questions', methods=['POST'])
 def save_questions():
     new_data = request.json
-    file_path = 'questions.json'
     
     try:
-        with open(file_path, 'r') as file:
+        with open(FILE_PATH, 'r') as file:
             data = json.load(file)
     except FileNotFoundError:
         data = []
@@ -155,10 +154,10 @@ def save_questions():
             data = [question for question in data if question['question'] != new_question.get('question')]
             data.append(new_question)
 
-    with open(file_path, 'w', encoding='utf-8') as file:
+    with open(FILE_PATH, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
 
-    print(f"{GREEN}Сохранено в файл: {file_path}{RESET}")
+    print(f"{GREEN}Сохранено в файл: {FILE_PATH}{RESET}")
     return jsonify({'status': 'success'})
 
 
