@@ -37,7 +37,8 @@ function extractQuestionAndAnswers() {
                         id: input.id,
                         type: input.type,
                         value: input.value,
-                        text: answerText
+                        text: answerText,
+                        checked: input.checked
                     });
                 }
             });

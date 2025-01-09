@@ -99,16 +99,22 @@ def mark_calculate(element: str) -> float:
     mark = (int(f_mark[0]) * 100 + int(f_mark[1])) / (int(s_mark[0]) * 100 + int(s_mark[1]))
     return mark
 
-def find_in_json(file_path, key, value):
+
+def check_question_in_file(question_text):
+    file_path = 'questions.json'
+    
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             data = json.load(file)
-            for item in data:
-                if item[key] == value:
-                    return item
-            return None
     except FileNotFoundError:
         return None
+    
+    for question in data:
+        if question.get('question') == question_text and question.get('mark', 0) == 1:
+            if question.get('type') == 'radio' or question.get('type') == 'checkbox':
+                return ' '.join([answer['text'][0] for answer in question.get('answers') if answer['checked']])
+            elif question.get('type') == 'text':
+                return question.get('input').get('value')
 
 
 @app.route('/')
@@ -120,7 +126,9 @@ def index():
 def get_answer():
     data = request.json
     content = format_content(data)
-    answer = get_answer_from_ai(content)
+    answer = check_question_in_file(data.get('question'))
+    if answer is None:
+        answer = get_answer_from_ai(content)
     
     print(f"{GREEN}{answer}{RESET}")
     return jsonify({'answer': answer})
@@ -152,6 +160,7 @@ def save_questions():
 
     print(f"{GREEN}Сохранено в файл: {file_path}{RESET}")
     return jsonify({'status': 'success'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
