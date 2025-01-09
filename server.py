@@ -21,7 +21,7 @@ def get_access_token():
     'Content-Type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json',
     'RqUID': str(uuid.uuid4()),
-    'Authorization': f'Basic {Authorization_key}'
+    'Authorization': f'Basic {AUTHORIZATION_KEY}'
     }
 
     response = requests.request("POST", url, verify=False, headers=headers, data=payload)
@@ -66,19 +66,25 @@ def get_answer_from_ai(content):
 
 def format_content(data):
     question = data.get('question')
-    answers = data.get('answers')
-    promt = data.get('promt')
+    if data.get('answers'):
+        answers = ';\n'.join([i.get('text') for i in data.get('answers')])
+    else:
+        answers = None
+    prompt = data.get('prompt')
     que_type = data.get('type')
 
     if que_type == 'radio':
-        content = f"{promt}\n{question}\n{answers}\nIn the answer, give only the number of the answer option."
+        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give only the number of the answer option."
     elif que_type == 'checkbox':
-        content = f"{promt}\n{question}\n{answers}\nIn the answer, give only the numbers of the answer options separated by a space."
+        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give only the numbers of the answer options separated by a space."
     elif que_type == 'text':
         content = f"Which word should be inserted in place of the _ sign in the sentence?: \n{question}\nShow only the right word (without punctuation marks)"
     else:
         content = None
 
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
+    print(f"{YELLOW}{content}{RESET}")
     return content
 
 

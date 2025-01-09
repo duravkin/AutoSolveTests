@@ -90,50 +90,39 @@ async function sendQuestionToBackend(questionData) {
 }
 
 // Автоматически выбираем правильный ответ
-function selectAnswer(answer) {
-    const radioButton = document.querySelector(`input[type="radio"][value="${answer}"]`);
-    if (radioButton) {
-        radioButton.checked = true;
+function selectAnswer(data, answer) {
+    if (data.type === 'radio') {
+        data.answers.forEach(element => {
+            if (element.text.includes(answer)) {
+                document.getElementById(element.id).click();
+                console.log(element.text);
+            }
+        });
+    }
+
+    else if (data.type === 'checkbox') {
+        data.answers.forEach(element => {
+            if (element.text.includes(answer)) {
+                document.getElementById(element.id).click();
+                console.log(element.text);
+            }
+        });
+    }
+
+    else {
+        console.log("Невозможно автоматически выбрать ответ");
     }
 }
 
-// Основная логика
-// const questions = extractQuestionAndAnswers();
-// questions.forEach(question => {
-//     sendQuestionToBackend(question).then(answer => {
-//         selectAnswer(answer);
-//     });
-// });
+// Основная функция
+async function main() {
+    const questions = extractQuestionAndAnswers();
 
-const MY_data = extractQuestionAndAnswers();
-console.log(MY_data);
+    for (let i = 0; i < questions.length; i++) {
+        let question = questions[i];
+        let answer = await sendQuestionToBackend(question);
+        selectAnswer(question, answer);
+    }
+}
 
-// async function testPostRequest() {
-//     const questionData = {
-//         question: "Какой ваш любимый цвет?",
-//         answers: ["Белый", "Черный"]
-//     };
-
-//     try {
-//         const response = await fetch('http://localhost:5000/get_answer', {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json'
-//             },
-//             body: JSON.stringify(questionData)
-//         });
-
-//         // Проверяем, если статус ответа успешный
-//         if (response.ok) {
-//             const data = await response.json();
-//             console.log('Ответ от бекенда:', data.answer);
-//         } else {
-//             console.error('Ошибка при отправке запроса:', response.status);
-//         }
-//     } catch (error) {
-//         console.error('Ошибка при выполнении запроса:', error);
-//     }
-// }
-
-// // Вызовем функцию для теста
-// testPostRequest();
+main();
