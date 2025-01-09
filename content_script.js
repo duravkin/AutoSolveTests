@@ -39,6 +39,7 @@ function extractQuestionAndAnswers() {
                 }
             });
             questionData.answers = answers;
+            questionData.type = radioCheckboxInputs[0].type;
         }
 
         // Проверяем наличие селекта
@@ -65,6 +66,7 @@ function extractQuestionAndAnswers() {
                 placeholder: textInput.placeholder || '',
                 value: textInput.value || ''
             };
+            questionData.type = textInput.type;
         }
 
         questions.push(questionData);

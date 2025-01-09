@@ -34,20 +34,22 @@ def get_access_token():
         print(response_data)
 
 
-def get_answer_from_ai(question, answers):
+def get_answer_from_ai(content):
+    if content is None:
+        return None
     access_token = get_access_token()
     if access_token is None:
         return None
         
     url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
-
-    messages = [{
+    
+    message = [{
         'role': 'user',
-        'content': f'Вопрос: {question}. Варианты ответов: {'; '.join(answers)}'
+        'content': content
     }]
     payload = json.dumps({
     "model": "GigaChat",
-    "messages": messages,
+    "messages": message,
     "stream": False,
     "repetition_penalty": 1
     })
@@ -62,12 +64,29 @@ def get_answer_from_ai(question, answers):
     return response.json()['choices'][0]['message']['content']
 
 
+def format_content(data):
+    question = data.get('question')
+    answers = data.get('answers')
+    promt = data.get('promt')
+    que_type = data.get('type')
+
+    if que_type == 'radio':
+        content = f"{promt}\n{question}\n{answers}\nIn the answer, give only the number of the answer option."
+    elif que_type == 'checkbox':
+        content = f"{promt}\n{question}\n{answers}\nIn the answer, give only the numbers of the answer options separated by a space."
+    elif que_type == 'text':
+        content = f"Which word should be inserted in place of the _ sign in the sentence?: \n{question}\nShow only the right word (without punctuation marks)"
+    else:
+        content = None
+
+    return content
+
+
 @app.route('/get_answer', methods=['POST'])
 def get_answer():
     data = request.json
-    question = data['question']
-    answers = data['answers']
-    answer = get_answer_from_ai(question, answers)
+    content = format_content(data)
+    answer = get_answer_from_ai(content)
     return jsonify({'answer': answer})
 
 
