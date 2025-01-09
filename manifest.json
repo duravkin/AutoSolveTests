@@ -1,11 +1,21 @@
 {
     "manifest_version": 3,
     "name": "AI Radio Button Helper",
-    "version": "0.1",
+    "version": "0.2",
     "description": "Расширение для автоматизации работы на странице с тестированием (помощник ИИ)",
     "permissions": [
         "activeTab",
         "scripting"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content_script.js"
+            ]
+        }
     ],
     "action": {
         "default_popup": "popup.html",

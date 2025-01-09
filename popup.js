@@ -2,7 +2,16 @@ document.getElementById("run-script").addEventListener("click", () => {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
         chrome.scripting.executeScript({
             target: { tabId: tabs[0].id },
-            files: ["content_script.js"]
+            files: ["run_decision.js"]
+        });
+    });
+});
+
+document.getElementById("run-analysis").addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            files: ["run_analysis.js"]
         });
     });
 });

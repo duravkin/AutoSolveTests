@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 
 <head>
     <meta charset="UTF-8">
     <title>AI Helper</title>
     <script src="popup.js" defer></script>
+    <script src="content_script.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -38,6 +39,7 @@
             border-radius: 5px;
             transition: background-color 0.3s ease, color 0.3s ease;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 200px;
         }
 
         button:hover {
@@ -52,8 +54,13 @@
 </head>
 
 <body>
+    <div id="trueBlock" style="display: none;">Условие истинно: отображается этот блок.</div>
+    <div id="falseBlock" style="display: none;">Условие ложно: отображается этот блок.</div>
+
     <h1>AI Radio Button Helper</h1>
-    <button id="run-script">Запустить</button>
+    <button id="run-script">Запустить решение</button>
+    <br>
+    <button id="run-analysis">Запустить анализ</button>
 </body>
 
 </html>

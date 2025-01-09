@@ -7,6 +7,9 @@ function extractQuestionAndAnswers() {
     questionBlocks.forEach(block => {
         const questionData = {};
 
+        const infoElement = block.querySelector('.grade');
+        questionData.info = infoElement ? infoElement.textContent.trim() : '';
+
         // Извлекаем текст вопроса
         const questionTextElement = block.querySelector('.qtext');
         questionData.question = questionTextElement ? questionTextElement.textContent.trim() : '';
@@ -133,14 +136,38 @@ function selectAnswer(data, answer) {
 }
 
 // Основная функция
-async function main() {
+async function decision() {
     const questions = extractQuestionAndAnswers();
+    console.log(questions);
 
     for (let i = 0; i < questions.length; i++) {
         let question = questions[i];
         let answer = await sendQuestionToBackend(question);
         selectAnswer(question, answer);
     }
+    alert("Задачи решены!");
 }
 
-main();
+// Отправляем вопросы и варианты ответов на бекенд для анализа
+async function sendQuestionsToFile(questionData) {
+    const response = await fetch('http://localhost:5000/save_questions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(questionData)
+    });
+    const status = await response.json();
+    console.log(status);
+    return status;
+}
+
+// Анализ
+async function analysis() {
+    const questions = extractQuestionAndAnswers();
+    console.log(questions);
+
+    const status = await sendQuestionsToFile(questions);
+
+    if (status) alert("Анализ окончен!");
+}

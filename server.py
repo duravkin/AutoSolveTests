@@ -90,6 +90,32 @@ def format_content(data):
     return content
 
 
+def mark_calculate(element: str) -> float:
+    if element is None:
+        return None
+    marks = element.split()
+    f_mark = marks[1].split(',')
+    s_mark = marks[-1].split(',')
+    mark = (int(f_mark[0]) * 100 + int(f_mark[1])) / (int(s_mark[0]) * 100 + int(s_mark[1]))
+    return mark
+
+def find_in_json(file_path, key, value):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+            for item in data:
+                if item[key] == value:
+                    return item
+            return None
+    except FileNotFoundError:
+        return None
+
+
+@app.route('/')
+def index():
+    return "Server is running..."
+
+
 @app.route('/get_answer', methods=['POST'])
 def get_answer():
     data = request.json
@@ -99,6 +125,33 @@ def get_answer():
     print(f"{GREEN}{answer}{RESET}")
     return jsonify({'answer': answer})
 
+
+@app.route('/save_questions', methods=['POST'])
+def save_questions():
+    new_data = request.json
+    file_path = 'questions.json'
+    
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = []
+
+    for new_question in new_data:
+        question = new_question.get('question')
+        new_question['mark'] = mark_calculate(new_question.get('info'))
+        
+        if question not in [question['question'] for question in data]:
+            data.append(new_question)
+        elif new_question.get('mark') > [question['mark'] for question in data if question['question'] == new_question.get('question')][0]:
+            data = [question for question in data if question['question'] != new_question.get('question')]
+            data.append(new_question)
+
+    with open(file_path, 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
+
+    print(f"{GREEN}Сохранено в файл: {file_path}{RESET}")
+    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     app.run(debug=True)
