@@ -112,6 +112,11 @@ function selectAnswer(data, answer) {
         });
     }
 
+    else if (data.type === 'text') {
+        document.getElementById(data.input.id).value = answer;
+        console.log(answer);
+    }
+
     else {
         console.log("Невозможно автоматически выбрать ответ");
     }
