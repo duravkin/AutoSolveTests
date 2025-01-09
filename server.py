@@ -4,6 +4,10 @@ import requests
 import uuid
 import json
 
+YELLOW = "\033[93m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
 with open('config.json') as f:
     config = json.load(f)
 
@@ -82,8 +86,6 @@ def format_content(data):
     else:
         content = None
 
-    YELLOW = "\033[93m"
-    RESET = "\033[0m"
     print(f"{YELLOW}{content}{RESET}")
     return content
 
@@ -93,6 +95,8 @@ def get_answer():
     data = request.json
     content = format_content(data)
     answer = get_answer_from_ai(content)
+    
+    print(f"{GREEN}{answer}{RESET}")
     return jsonify({'answer': answer})
 
 

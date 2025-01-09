@@ -102,9 +102,12 @@ function selectAnswer(data, answer) {
 
     else if (data.type === 'checkbox') {
         data.answers.forEach(element => {
-            if (element.text.includes(answer)) {
-                document.getElementById(element.id).click();
-                console.log(element.text);
+            const arr_answer = answer.split(' ');
+            for (let i = 0; i < arr_answer.length; i++) {
+                if (element.text.includes(arr_answer[i])) {
+                    document.getElementById(element.id).click();
+                    console.log(element.text);
+                }
             }
         });
     }
