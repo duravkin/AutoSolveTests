@@ -102,7 +102,11 @@ function selectAnswer(data, answer) {
     if (data.type === 'radio') {
         data.answers.forEach(element => {
             document.getElementById(element.id).checked = false;
-            if (element.text.includes(answer)) {
+            if (isNumber(answer) && answer - 1 == element.id[element.id.length - 1]) {
+                document.getElementById(element.id).checked = true;
+                console.log(element.text);
+            }
+            else if (element.text.includes(answer)) {
                 document.getElementById(element.id).checked = true;
                 console.log(element.text);
             }
