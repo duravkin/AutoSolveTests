@@ -5,31 +5,69 @@ function extractQuestionAndAnswers() {
     const questionBlocks = document.querySelectorAll('div.que');
 
     questionBlocks.forEach(block => {
-        // Извлечь текст вопроса
+        const questionData = {};
+
+        // Извлекаем текст вопроса
         const questionTextElement = block.querySelector('.qtext');
-        const questionText = questionTextElement ? questionTextElement.textContent.trim() : 'Unknown question';
+        questionData.question = questionTextElement ? questionTextElement.textContent.trim() : '';
 
-        // Найти все радиокнопки и связанные с ними тексты
+        // Извлекаем prompt (если есть)
+        const promptElement = block.querySelector('.prompt');
+        if (promptElement) {
+            const excessElement = block.querySelector('.sr-only');
+            questionData.prompt = promptElement.textContent.replace(excessElement.textContent, '').trim();
+        }
+
+
+        // Проверяем наличие радиокнопок или чекбоксов
         const answers = [];
-        const answerBlocks = block.querySelectorAll('.answer > div');
+        const radioCheckboxInputs = block.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+        if (radioCheckboxInputs.length > 0) {
+            radioCheckboxInputs.forEach(input => {
+                const labelId = input.getAttribute('aria-labelledby');
+                if (labelId) {
+                    // Экранируем символы, которые не допустимы в CSS-селекторах
+                    const safeLabelId = CSS.escape(labelId);
+                    const labelElement = block.querySelector(`#${safeLabelId}`);
+                    const answerText = labelElement ? labelElement.textContent.trim() : '';
+                    answers.push({
+                        id: input.id,
+                        type: input.type,
+                        value: input.value,
+                        text: answerText
+                    });
+                }
+            });
+            questionData.answers = answers;
+        }
 
-        answerBlocks.forEach(answerBlock => {
-            const radioButton = answerBlock.querySelector('input[type="radio"]');
-            const answerTextElement = answerBlock.querySelector('.flex-fill');
-            const answerText = answerTextElement ? answerTextElement.textContent.trim() : 'Unknown answer';
+        // Проверяем наличие селекта
+        // const selectElement = block.querySelector('select');
+        // if (selectElement) {
+        //     const options = Array.from(selectElement.options).map(option => ({
+        //         value: option.value,
+        //         text: option.textContent.trim()
+        //     }));
+        //     questionData.select = options;
+        // }
 
-            if (radioButton) {
-                answers.push({
-                    value: radioButton.value,
-                    text: answerText
-                });
+        // Проверяем наличие текстового поля для ввода
+        const textInput = block.querySelector('input[type="text"], textarea');
+        if (textInput) {
+            if (questionData.question) {
+                const temptext = block.querySelector('label').textContent.trim();
+                questionData.question = questionData.question.replace(temptext, '_');
             }
-        });
+            questionData.input = {
+                id: textInput.id || null,
+                type: textInput.type || null,
+                name: textInput.name || null,
+                placeholder: textInput.placeholder || '',
+                value: textInput.value || ''
+            };
+        }
 
-        questions.push({
-            question: questionText,
-            answers: answers
-        });
+        questions.push(questionData);
     });
 
     return questions;
