@@ -1,4 +1,4 @@
-// Ищем все радиокнопки на странице
+/* Функция для извлечения вопросов и ответов */
 function extractQuestionAndAnswers() {
     const questions = [];
     // Найти все блоки с вопросами
@@ -7,8 +7,21 @@ function extractQuestionAndAnswers() {
     questionBlocks.forEach(block => {
         const questionData = {};
 
-        const infoElement = block.querySelector('.grade');
-        questionData.info = infoElement ? infoElement.textContent.trim() : '';
+        // Извлекаем информацию о вопросе
+        const infoElement = block.querySelector('.info');
+        if (infoElement) {
+            const infoDate = {};
+            const numberTask = infoElement.querySelector('.qno');
+            infoDate.numberTask = numberTask ? numberTask.textContent.trim() : '';
+
+            const stateElement = infoElement.querySelector('.state');
+            infoDate.state = stateElement ? stateElement.textContent.trim() : '';
+
+            const gradeElement = infoElement.querySelector('.grade');
+            infoDate.grade = gradeElement ? gradeElement.textContent.trim() : '';
+
+            questionData.info = infoDate;
+        }
 
         // Извлекаем текст вопроса
         const questionTextElement = block.querySelector('.qtext');
@@ -21,26 +34,47 @@ function extractQuestionAndAnswers() {
             questionData.prompt = promptElement.textContent.replace(excessElement.textContent, '').trim();
         }
 
-
         // Проверяем наличие радиокнопок или чекбоксов
         const answers = [];
         const radioCheckboxInputs = block.querySelectorAll('input[type="radio"], input[type="checkbox"]');
         if (radioCheckboxInputs.length > 0) {
             radioCheckboxInputs.forEach(input => {
+                let answerText = '';
+
+                // Пытаемся получить текст из атрибута aria-labelledby
                 const labelId = input.getAttribute('aria-labelledby');
                 if (labelId) {
-                    // Экранируем символы, которые не допустимы в CSS-селекторах
                     const safeLabelId = CSS.escape(labelId);
-                    const labelElement = block.querySelector(`#${safeLabelId}`);
-                    const answerText = labelElement ? labelElement.textContent.trim() : '';
-                    answers.push({
-                        id: input.id,
-                        type: input.type,
-                        value: input.value,
-                        text: answerText,
-                        checked: input.checked
-                    });
+                    const labelElement = block.querySelector(`#${safeLabelId}`).querySelector('div');
+                    if (labelElement) {
+                        answerText = labelElement.textContent.trim();
+                    }
                 }
+
+                // Если aria-labelledby отсутствует, ищем связанный <label>
+                if (!answerText) {
+                    const labelElement = block.querySelector(`label[for="${CSS.escape(input.id)}"]`);
+                    if (labelElement) {
+                        answerText = labelElement.textContent.trim();
+                    }
+                }
+
+                // Если связанный <label> не найден, ищем текст в ближайших родительских или соседних элементах
+                if (!answerText) {
+                    const parent = input.closest('div, span, p');
+                    if (parent) {
+                        answerText = parent.textContent.trim();
+                    }
+                }
+
+                answers.push({
+                    id: input.id || null,
+                    name: input.name || null,
+                    type: input.type || null,
+                    value: input.value || null,
+                    text: answerText || '',
+                    checked: input.checked || false
+                });
             });
             questionData.answers = answers;
             questionData.type = radioCheckboxInputs[0].type;
@@ -65,9 +99,8 @@ function extractQuestionAndAnswers() {
             }
             questionData.input = {
                 id: textInput.id || null,
-                type: textInput.type || null,
                 name: textInput.name || null,
-                placeholder: textInput.placeholder || '',
+                type: textInput.type || null,
                 value: textInput.value || ''
             };
             questionData.type = textInput.type;
@@ -79,8 +112,7 @@ function extractQuestionAndAnswers() {
     return questions;
 }
 
-
-// Отправляем вопрос и варианты ответов на бекенд
+/* Отправляем вопрос и варианты ответов на бекенд для решения */
 async function sendQuestionToBackend(questionData) {
     const response = await fetch('http://localhost:5000/get_answer', {
         method: 'POST',
@@ -93,67 +125,7 @@ async function sendQuestionToBackend(questionData) {
     return data.answer;
 }
 
-function isNumber(value) {
-    return !isNaN(Number(value));
-}
-
-// Автоматически выбираем правильный ответ
-function selectAnswer(data, answer) {
-    if (data.type === 'radio') {
-        data.answers.forEach(element => {
-            document.getElementById(element.id).checked = false;
-            if (isNumber(answer) && answer - 1 == element.id[element.id.length - 1]) {
-                document.getElementById(element.id).checked = true;
-                console.log(element.text);
-            }
-            else if (element.text.includes(answer)) {
-                document.getElementById(element.id).checked = true;
-                console.log(element.text);
-            }
-        });
-    }
-
-    else if (data.type === 'checkbox') {
-        data.answers.forEach(element => {
-            document.getElementById(element.id).checked = false;
-            const arr_answer = answer.split(' ');
-            for (let i = 0; i < arr_answer.length; i++) {
-                if (isNumber(arr_answer[i]) && arr_answer[i] - 1 == element.id[element.id.length - 1]) {
-                    document.getElementById(element.id).checked = true;
-                    console.log(element.text);
-                }
-                else if (element.text.includes(arr_answer[i])) {
-                    document.getElementById(element.id).checked = true;
-                    console.log(element.text);
-                }
-            }
-        });
-    }
-
-    else if (data.type === 'text') {
-        document.getElementById(data.input.id).value = answer;
-        console.log(answer);
-    }
-
-    else {
-        console.log("Невозможно автоматически выбрать ответ");
-    }
-}
-
-// Основная функция
-async function decision() {
-    const questions = extractQuestionAndAnswers();
-    console.log(questions);
-
-    for (let i = 0; i < questions.length; i++) {
-        let question = questions[i];
-        let answer = await sendQuestionToBackend(question);
-        selectAnswer(question, answer);
-    }
-    alert("Задачи решены!");
-}
-
-// Отправляем вопросы и варианты ответов на бекенд для анализа
+/* Отправляем вопросы и варианты ответов на бекенд для анализа */
 async function sendQuestionsToFile(questionData) {
     const response = await fetch('http://localhost:5000/save_questions', {
         method: 'POST',
@@ -167,7 +139,75 @@ async function sendQuestionsToFile(questionData) {
     return status;
 }
 
-// Анализ
+/* Проверяем, является ли строка числом */
+function isNumber(value) {
+    return !isNaN(Number(value));
+}
+
+/* Автоматически выбираем ответ */
+function selectAnswer(data, answer) {
+    if (answer == null)
+        return;
+
+    if (data.type === 'radio') {
+        let numberElement = 1;
+        data.answers.forEach(element => {
+            document.getElementById(element.id).checked = false;
+            if (isNumber(answer) && answer == numberElement) {
+                document.getElementById(element.id).checked = true;
+                console.log(element.text);
+            }
+            else if (answer == element.text) {
+                document.getElementById(element.id).checked = true;
+                console.log(element.text);
+            }
+            numberElement++;
+        });
+    }
+
+    else if (data.type === 'checkbox') {
+        const arr_answer = answer.split('\n');
+        let numberElement = 1;
+        data.answers.forEach(element => {
+            document.getElementById(element.id).checked = false;
+            for (let i = 0; i < arr_answer.length; i++) {
+                if (isNumber(arr_answer[i]) && arr_answer[i] == numberElement) {
+                    document.getElementById(element.id).checked = true;
+                    console.log(element.text);
+                }
+                else if (arr_answer[i] == element.text) {
+                    document.getElementById(element.id).checked = true;
+                    console.log(element.text);
+                }
+            }
+            numberElement++;
+        });
+    }
+
+    else if (data.type === 'text') {
+        document.getElementById(data.input.id).value = answer;
+        console.log(answer);
+    }
+
+    else {
+        console.log("Невозможно автоматически выбрать ответ");
+    }
+}
+
+/* Запуск процесса решения */
+async function decision() {
+    const questions = extractQuestionAndAnswers();
+    console.log(questions);
+
+    for (let i = 0; i < questions.length; i++) {
+        let question = questions[i];
+        let answer = await sendQuestionToBackend(question);
+        selectAnswer(question, answer);
+    }
+    alert("Задачи решены!");
+}
+
+/* Запуск процесса анализа */
 async function analysis() {
     const questions = extractQuestionAndAnswers();
     console.log(questions);

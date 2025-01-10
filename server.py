@@ -73,16 +73,16 @@ def get_answer_from_ai(content):
 def format_content(data):
     question = data.get('question')
     if data.get('answers'):
-        answers = ';\n'.join([i.get('text') for i in data.get('answers')])
+        answers = ';\n'.join([f"{i + 1}) " + key.get('text') for i, key in enumerate(data.get('answers'))])
     else:
         answers = None
     prompt = data.get('prompt')
     que_type = data.get('type')
 
     if que_type == 'radio':
-        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give only the number of the answer option."
+        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give **only** the number of the answer option"
     elif que_type == 'checkbox':
-        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give only the numbers of the answer options separated by a space."
+        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give **only** the numbers of the answer options separated by ,"
     elif que_type == 'text':
         content = f"Which word should be inserted in place of the _ sign in the sentence?: \n{question}\nShow only the right word (without punctuation marks)"
     else:
@@ -92,29 +92,42 @@ def format_content(data):
     return content
 
 
-def mark_calculate(element: str) -> float:
-    if element is None:
+def mark_calculate(element_grade: str) -> float:
+    if element_grade is None:
         return None
-    marks = element.split()
-    f_mark = marks[1].split(',')
-    s_mark = marks[-1].split(',')
-    mark = (int(f_mark[0]) * 100 + int(f_mark[1])) / (int(s_mark[0]) * 100 + int(s_mark[1]))
-    return mark
+    marks = element_grade.split()
+    if len(marks) == 4:
+        f_mark = marks[1].split(',')
+        s_mark = marks[-1].split(',')
+        mark = (int(f_mark[0]) * 100 + int(f_mark[1])) / (int(s_mark[0]) * 100 + int(s_mark[1]))
+        return mark
+    return 0
 
 
-def check_question_in_file(question_text):    
+def check_question_in_file(question_text):
+    if question_text is None:
+        return None    
     try:
         with open(FILE_PATH, 'r', encoding='utf-8') as file:
-            data = json.load(file)
+            content = file.read().strip()
+            if content:
+                data = json.loads(content)
+            else:
+                return None
     except FileNotFoundError:
         return None
     
-    for question in data:
-        if question.get('question') == question_text and question.get('mark', 0) == 1:
-            if question.get('type') == 'radio' or question.get('type') == 'checkbox':
-                return ' '.join([answer['text'][0] for answer in question.get('answers') if answer['checked']])
-            elif question.get('type') == 'text':
-                return question.get('input').get('value')
+    for question_struct in data:
+        question = question_struct.get('question')
+        mark = question_struct.get('mark', 0)
+        question_type = question_struct.get('type')
+
+        if question == question_text and mark == 1:
+            if question_type == 'radio' or question_type == 'checkbox':
+                answers = question_struct.get('answers')
+                return '\n'.join([answer.get('text') for answer in answers if answer.get('checked')])
+            elif question_type == 'text':
+                return question_struct.get('input', {}).get('value')
 
 
 @app.route('/')
@@ -129,6 +142,9 @@ def get_answer():
     answer = check_question_in_file(data.get('question'))
     if answer is None:
         answer = get_answer_from_ai(content)
+        if (data.get('type') == 'radio' or data.get('type') == 'checkbox') and answer is not None:
+            # answer = answer.replace(',', ' ').replace('.', ' ').replace(' ', '')
+            answer = '\n'.join([i for i in answer if i.isdigit()])
     
     print(f"{GREEN}{answer}{RESET}")
     return jsonify({'answer': answer})
@@ -139,20 +155,24 @@ def save_questions():
     new_data = request.json
     
     try:
-        with open(FILE_PATH, 'r') as file:
-            data = json.load(file)
+        with open(FILE_PATH, 'r', encoding='utf-8') as file:
+            content = file.read().strip()
+            if content:
+                data = json.loads(content)
+            else:
+                data = []
     except FileNotFoundError:
         data = []
 
-    for new_question in new_data:
-        question = new_question.get('question')
-        new_question['mark'] = mark_calculate(new_question.get('info'))
+    for new_task in new_data:
+        question = new_task.get('question')
+        new_task['mark'] = mark_calculate(new_task.get('info', {}).get('grade'))
         
-        if question not in [question['question'] for question in data]:
-            data.append(new_question)
-        elif new_question.get('mark') > [question['mark'] for question in data if question['question'] == new_question.get('question')][0]:
-            data = [question for question in data if question['question'] != new_question.get('question')]
-            data.append(new_question)
+        if question not in [task.get('question') for task in data]:
+            data.append(new_task)
+        elif new_task.get('mark') > [task.get('mark') for task in data if task.get('question') == new_task.get('question')][0]:
+            data = [task for task in data if task.get('question') != new_task.get('question')]
+            data.append(new_task)
 
     with open(FILE_PATH, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
