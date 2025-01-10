@@ -231,7 +231,7 @@ async function decision() {
         selectAnswer(question, answerData.answer);
         setColorElement(question, answerData.type);
     }
-    alert("Задачи решены!");
+    // alert("Задачи решены!");
 }
 
 /* Запуск процесса анализа */
@@ -241,5 +241,5 @@ async function analysis() {
 
     const status = await sendQuestionsToFile(questions);
 
-    if (status) alert("Анализ окончен!");
+    // if (status) alert("Анализ окончен!");
 }

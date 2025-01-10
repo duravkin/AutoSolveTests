@@ -70,23 +70,32 @@ def get_answer_from_ai(content):
     return response.json()['choices'][0]['message']['content']
 
 
-def format_content(data):
+def format_content(data, last_answer=None):
+    wrong_answers = None
     question = data.get('question')
     if data.get('answers'):
         answers = ';\n'.join([f"{i + 1}) " + key.get('text') for i, key in enumerate(data.get('answers'))])
+        if last_answer is not None:
+            last_answers = last_answer.split('\n')
+            wrong_answers = [i + 1 for i, key in enumerate(data.get('answers')) if key.get('text') in last_answers]
     else:
         answers = None
     prompt = data.get('prompt')
     que_type = data.get('type')
 
     if que_type == 'radio':
-        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give **only** the number of the answer option"
+        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give only the number of the answer option"
     elif que_type == 'checkbox':
-        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give **only** the numbers of the answer options separated by ,"
+        content = f"{prompt}\n{question}\n{answers}\nIn the answer, give only the numbers of the answer options separated by ,"
     elif que_type == 'text':
-        content = f"Which word should be inserted in place of the _ sign in the sentence?: \n{question}\nShow only the right word (without punctuation marks)"
+        content = f"Which word should be inserted in place of the _ sign in the sentence?: \n{question}\nShow me only one correct word (without punctuation marks)"
     else:
         content = None
+
+    if wrong_answers is not None and wrong_answers != []:
+        content += f"\nThink again. You mentioned the wrong options last time: {wrong_answers}"
+    elif last_answer is not None and last_answer != '':
+        content += f"\nThink again. You mentioned the wrong answer last time: '{last_answer}'"
 
     print(f"{YELLOW}{content}{RESET}")
     return content
@@ -106,28 +115,36 @@ def mark_calculate(element_grade: str) -> float:
 
 def check_question_in_file(question_text):
     if question_text is None:
-        return None    
+        return None, None
     try:
         with open(FILE_PATH, 'r', encoding='utf-8') as file:
             content = file.read().strip()
             if content:
                 data = json.loads(content)
             else:
-                return None
+                return None, None
     except FileNotFoundError:
-        return None
+        return None, None
     
     for question_struct in data:
         question = question_struct.get('question')
         mark = question_struct.get('mark', 0)
         question_type = question_struct.get('type')
 
-        if question == question_text and mark == 1:
+        result = None
+        if question == question_text:
             if question_type == 'radio' or question_type == 'checkbox':
                 answers = question_struct.get('answers')
-                return '\n'.join([answer.get('text') for answer in answers if answer.get('checked')])
+                result = '\n'.join([answer.get('text') for answer in answers if answer.get('checked')])
             elif question_type == 'text':
-                return question_struct.get('input', {}).get('value')
+                result = question_struct.get('input', {}).get('value')
+
+        if result is not None:
+            if mark == 1:
+                return result, None
+            return None, result
+
+    return None, None
 
 
 @app.route('/')
@@ -138,8 +155,8 @@ def index():
 @app.route('/get_answer', methods=['POST'])
 def get_answer():
     data = request.json
-    content = format_content(data)
-    answer = check_question_in_file(data.get('question'))
+    answer, last_answer = check_question_in_file(data.get('question'))
+    content = format_content(data, last_answer)
     answer_type = None
 
     if answer is None:
