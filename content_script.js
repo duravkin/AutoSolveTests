@@ -122,7 +122,7 @@ async function sendQuestionToBackend(questionData) {
         body: JSON.stringify(questionData)
     });
     const data = await response.json();
-    return data.answer;
+    return data;
 }
 
 /* Отправляем вопросы и варианты ответов на бекенд для анализа */
@@ -194,6 +194,32 @@ function selectAnswer(data, answer) {
     }
 }
 
+/* Помечаем вопрос как решенный */
+function setColorElement(data, answerType) {
+    const taskNumber = data.info.numberTask;
+
+    const blocks = Array.from(document.querySelectorAll('.qno'));
+    const block = blocks.find(block => block.textContent.includes(taskNumber));
+
+    if (block) {
+        const parentBlock = block.closest('.info');
+
+        if (parentBlock) {
+
+            if (answerType == 'JSON') {
+                parentBlock.style.backgroundColor = 'lightgreen';
+            } else if (answerType == 'AI') {
+                parentBlock.style.backgroundColor = 'yellow';
+            }
+            else {
+                parentBlock.style.backgroundColor = 'lightblue';
+            }
+        }
+    } else {
+        console.error(`Элемент с номером задачи ${taskNumber} не найден`);
+    }
+}
+
 /* Запуск процесса решения */
 async function decision() {
     const questions = extractQuestionAndAnswers();
@@ -201,8 +227,9 @@ async function decision() {
 
     for (let i = 0; i < questions.length; i++) {
         let question = questions[i];
-        let answer = await sendQuestionToBackend(question);
-        selectAnswer(question, answer);
+        let answerData = await sendQuestionToBackend(question);
+        selectAnswer(question, answerData.answer);
+        setColorElement(question, answerData.type);
     }
     alert("Задачи решены!");
 }
