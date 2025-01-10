@@ -80,16 +80,6 @@ function extractQuestionAndAnswers() {
             questionData.type = radioCheckboxInputs[0].type;
         }
 
-        // Проверяем наличие селекта
-        // const selectElement = block.querySelector('select');
-        // if (selectElement) {
-        //     const options = Array.from(selectElement.options).map(option => ({
-        //         value: option.value,
-        //         text: option.textContent.trim()
-        //     }));
-        //     questionData.select = options;
-        // }
-
         // Проверяем наличие текстового поля для ввода
         const textInput = block.querySelector('input[type="text"], textarea');
         if (textInput) {
@@ -104,6 +94,34 @@ function extractQuestionAndAnswers() {
                 value: textInput.value || ''
             };
             questionData.type = textInput.type;
+        }
+
+        // Обработка select (выпадающий список)
+        const selectElements = block.querySelectorAll('select');
+        if (selectElements.length > 0) {
+            const selectData = [];
+            selectElements.forEach(select => {
+                // Получаем текст, отображаемый рядом с <select>
+                const associatedTextElement = select.closest('tr')?.querySelector('td.text');
+                const associatedText = associatedTextElement ? associatedTextElement.textContent.trim() : '';
+
+                const options = [];
+                select.querySelectorAll('option').forEach(option => {
+                    options.push({
+                        value: option.value,
+                        text: option.textContent.trim(),
+                        selected: option.selected
+                    });
+                });
+                selectData.push({
+                    id: select.id || null,
+                    name: select.name || null,
+                    options: options,
+                    text: associatedText
+                });
+            });
+            questionData.select = selectData;
+            questionData.type = 'select';
         }
 
         questions.push(questionData);
@@ -188,6 +206,47 @@ function selectAnswer(data, answer) {
         document.getElementById(data.input.id).value = answer;
         console.log(answer);
     }
+
+    else if (data.type === 'select') {
+        // Парсим данные, где ключ — это текст рядом с select, а значение — текст опции
+        const selectedValues = answer.split('\n').reduce((acc, line) => {
+            const [key, value] = line.split('\t');
+            if (key && value) {
+                acc[key.trim()] = value.trim();
+            }
+            return acc;
+        }, {});
+
+        data.select.forEach(select => {
+            const selectElement = document.getElementById(select.id);
+            if (selectElement) {
+                const relatedText = select.text; // Текст рядом с селектом
+                const selectedValue = selectedValues[relatedText];
+                if (selectedValue) {
+                    let found = false;
+                    // Найти соответствующую опцию по тексту
+                    select.options.forEach(option => {
+                        if (option.text === selectedValue) {
+                            selectElement.value = option.value;
+                            found = true;
+                            console.log(`Selected "${option.text}" for "${relatedText}"`);
+                        }
+                    });
+
+                    // if (!found) {
+                    //     console.warn(`Не удалось найти опцию "${selectedValue}" для "${relatedText}"`);
+                    // }
+                }
+                // else {
+                //     console.warn(`Не найдено значение для селекта с текстом "${relatedText}"`);
+                // }
+            }
+            // else {
+            //     console.warn(`Не удалось найти элемент select с ID "${select.id}"`);
+            // }
+        });
+    }
+
 
     else {
         console.log("Невозможно автоматически выбрать ответ");

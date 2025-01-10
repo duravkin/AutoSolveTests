@@ -90,7 +90,7 @@ def format_content(data, last_answer=None):
     elif que_type == 'text':
         content = f"Which word should be inserted in place of the _ sign in the sentence?: \n{question}\nShow me only one correct word (without punctuation marks)"
     else:
-        content = None
+        return None
 
     if wrong_answers is not None and wrong_answers != []:
         content += f"\nThink again. You mentioned the wrong options last time: {wrong_answers}"
@@ -138,6 +138,17 @@ def check_question_in_file(question_text):
                 result = '\n'.join([answer.get('text') for answer in answers if answer.get('checked')])
             elif question_type == 'text':
                 result = question_struct.get('input', {}).get('value')
+            elif question_type == 'select':
+                selects = question_struct.get('select', [])
+                selected_values = dict()
+                for select in selects:
+                    options = select.get('options', [])
+                    for option in options:
+                        if option.get('selected', False):
+                            selected_values[select.get('text', '')] = (option.get('text'))
+                result = ''
+                for key, value in selected_values.items():
+                    result += f"{key}\t{value}\n"
 
         if result is not None:
             if mark == 1:
