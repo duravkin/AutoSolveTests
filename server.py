@@ -140,14 +140,20 @@ def get_answer():
     data = request.json
     content = format_content(data)
     answer = check_question_in_file(data.get('question'))
+    answer_type = None
+
     if answer is None:
         answer = get_answer_from_ai(content)
         if (data.get('type') == 'radio' or data.get('type') == 'checkbox') and answer is not None:
             # answer = answer.replace(',', ' ').replace('.', ' ').replace(' ', '')
             answer = '\n'.join([i for i in answer if i.isdigit()])
+            
+            answer_type = 'AI'
+    else:
+        answer_type = 'JSON'
     
     print(f"{GREEN}{answer}{RESET}")
-    return jsonify({'answer': answer})
+    return jsonify({'answer': answer, 'answer_type': answer_type})
 
 
 @app.route('/save_questions', methods=['POST'])
